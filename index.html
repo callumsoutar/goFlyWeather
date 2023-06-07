@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Current Weather</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="heading"><h2>Current Weather for Palmerston North, New Zealand</h2></div>
+  <div id="weather">
+    <p>Loading...</p>
+  </div>
+
+  <script>
+    // Replace 'YOUR_API_KEY' with your actual API key
+    const apiKey = 'ba9308492c7f05e7f852e5f012af7cd2';
+    const city = 'Palmerston North';
+
+    // Function to trigger VMC webhook
+    function triggerVMCWebhook() {
+      
+        const webhook1URL = 'https://maker.ifttt.com/trigger/VFR/with/key/d7h3K0YH1ypVnrqI0W3Xta';
+
+  fetch(webhook1URL, { method: 'POST' })
+    .then(response => {
+      if (response.ok) {
+        console.log('Webhook 1 triggered successfully!');
+      } else {
+        throw new Error('Failed to trigger webhook 1');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error.message);
+    });
+}
+
+    // Function to trigger IMC webhook 
+    function triggerIMCWebhook() {
+      // Replace with your webhook 2 logic
+      console.log('IMC Webhook triggered!');
+    }
+
+    // Fetch weather data from OpenWeather API
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`)
+      .then(response => response.json())
+      .then(data => {
+        const weatherDiv = document.getElementById('weather');
+        const temperature = Math.round(data.main.temp - 273.15); // Convert from Kelvin to Celsius
+        const description = data.weather[0].description;
+        const windSpeed = Math.round(data.wind.speed * 1.94384); // Convert m/s to knots
+        const humidity = data.main.humidity;
+        const visibility = data.visibility;
+        const clouds = data.clouds.all;
+        
+        const weatherHTML = `
+          <h2>${temperature}°C</h2>
+          <p><strong>Description:</strong> ${description}</p>
+          <p><strong>Wind Speed:</strong> ${windSpeed} knots</p>
+          <p><strong>Humidity:</strong> ${humidity}%</p>
+          <p><strong>Visibilty:</strong> ${visibility}m</p>
+          <p><strong>Clouds:</strong> ${clouds}</p>
+        `;
+
+        weatherDiv.innerHTML = weatherHTML;
+
+        // Trigger webhooks based on weather conditions
+        if (clouds > 70 && visibility < 7000) {
+          triggerIMCWebhook(); // Call IMC webhook 
+
+        } else if (description.includes('cloudy') || description.includes('rain') || description.includes('showers') || description.includes('broken')) {
+          triggerIMCWebhook(); // Call IMC webhook
+
+        } else if (visibility >= 7000 && clouds < 70) {
+          triggerVMCWebhook(); // Call VMC webhook 1
+
+        } else {
+          console.log('No webhook condition met.');
+        }
+
+        // Log JSON payload to console
+        console.log(data);
+      })
+      .catch(error => {
+        const weatherDiv = document.getElementById('weather');
+        weatherDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+      });
+  </script>
+</body>
+</html>
